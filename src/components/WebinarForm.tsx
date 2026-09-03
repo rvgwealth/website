@@ -19,7 +19,15 @@ export function WebinarForm() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const fd = new FormData(form);
+    const data = {
+      name: fd.get("name"),
+      email: fd.get("email"),
+      phone: fd.get("phone"),
+      goal: fd.get("goal"),
+      company: fd.get("company") ?? "",
+      whatsappOptIn: fd.get("whatsappOptIn") === "on",
+    };
 
     setStatus("sending");
     setErrorMsg("");
@@ -115,6 +123,20 @@ export function WebinarForm() {
           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none w-5 h-5 text-slate" />
         </div>
       </div>
+
+      <label className="flex items-start gap-3 rounded-lg border border-hairline bg-mist/60 px-4 py-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="whatsappOptIn"
+          defaultChecked
+          className="mt-0.5 h-4 w-4 shrink-0 accent-evergreen cursor-pointer"
+        />
+        <span className="text-sm text-slate">
+          Send me the joining link, reminders and free templates on{" "}
+          <span className="font-semibold text-ink">WhatsApp</span>. You can opt
+          out any time.
+        </span>
+      </label>
 
       {status === "error" && (
         <p className="text-sm text-center text-red-600">{errorMsg}</p>

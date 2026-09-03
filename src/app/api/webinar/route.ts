@@ -9,6 +9,8 @@ const schema = z.object({
   email: z.string().trim().email().max(200),
   phone: z.string().trim().min(7).max(20),
   goal: z.enum(["structure", "saving", "education", "retirement", "debt"]),
+  // Meta requires documented opt-in before any WhatsApp template message.
+  whatsappOptIn: z.boolean().default(false),
   // Honeypot — humans never see this field; bots fill it.
   company: z.string().max(0).optional().or(z.literal("")),
 });
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, email, phone, goal, company } = parsed.data;
+  const { name, email, phone, goal, whatsappOptIn, company } = parsed.data;
 
   // Honeypot tripped — pretend success so bots don't adapt.
   if (company) {
@@ -113,6 +115,8 @@ export async function POST(request: Request) {
       goal,
       session_label: session.schedule,
       source: "website",
+      whatsapp_opt_in: whatsappOptIn,
+      whatsapp_opt_in_at: whatsappOptIn ? new Date().toISOString() : null,
       user_agent: request.headers.get("user-agent"),
       ip,
     });
@@ -145,6 +149,7 @@ export async function POST(request: Request) {
         `WhatsApp: ${phone}`,
         `Goal: ${goalLabels[goal]}`,
         `Session: ${session.schedule}`,
+        `WhatsApp opt-in: ${whatsappOptIn ? "YES" : "no"}`,
         ``,
         stored ? `Saved to Supabase.` : `NOT saved to Supabase — check config.`,
       ].join("\n"),
