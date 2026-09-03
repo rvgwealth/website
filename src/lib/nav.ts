@@ -12,6 +12,6 @@ export const navLinks: NavLink[] = [
 ];
 
 export const primaryCta = {
-  label: "Book a Consultation",
-  href: "/contact",
+  label: "Attend Free Webinar",
+  href: "/webinar",
 };

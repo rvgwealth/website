@@ -12,7 +12,7 @@ export function SiteFooter() {
           <div>
             <Image
               src="/logo-lockup-transparent.png"
-              alt="RVGWealth — Investment Planning Services"
+              alt="RVGWealth"
               width={820}
               height={380}
               className="h-auto w-48"
