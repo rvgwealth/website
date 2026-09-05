@@ -8,7 +8,6 @@ const schema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(200),
   phone: z.string().trim().min(7).max(20),
-  goal: z.enum(["structure", "saving", "education", "retirement", "debt"]),
   // ISO date of the chosen weekend slot; the label is re-derived server-side.
   sessionSlot: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   // Meta requires documented opt-in before any WhatsApp template message.
@@ -16,14 +15,6 @@ const schema = z.object({
   // Honeypot — humans never see this field; bots fill it.
   company: z.string().max(0).optional().or(z.literal("")),
 });
-
-const goalLabels: Record<string, string> = {
-  structure: "Structure overall financial plan",
-  saving: "Build a saving & investing habit",
-  education: "Plan for child's education",
-  retirement: "Prepare for retirement",
-  debt: "Get out of debt",
-};
 
 // Naive per-IP rate limit. Resets on redeploy/cold start — good enough
 // to stop form spam without external infra.
@@ -99,7 +90,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, email, phone, goal, sessionSlot, whatsappOptIn, company } =
+  const { name, email, phone, sessionSlot, whatsappOptIn, company } =
     parsed.data;
 
   // Honeypot tripped — pretend success so bots don't adapt.
@@ -124,7 +115,6 @@ export async function POST(request: Request) {
       name,
       email,
       phone,
-      goal,
       session_label: slotLabel,
       source: "website",
       whatsapp_opt_in: whatsappOptIn,
@@ -159,7 +149,6 @@ export async function POST(request: Request) {
         `Name: ${name}`,
         `Email: ${email}`,
         `WhatsApp: ${phone}`,
-        `Goal: ${goalLabels[goal]}`,
         `Session: ${slotLabel}`,
         `WhatsApp opt-in: ${whatsappOptIn ? "YES" : "no"}`,
         ``,

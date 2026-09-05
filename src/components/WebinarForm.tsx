@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronDown, Lock } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { Button } from "./Button";
 import { Eyebrow } from "./Eyebrow";
 import { generateSessionSlots, type SessionSlot } from "@/lib/webinar";
@@ -41,7 +41,6 @@ export function WebinarForm() {
       name: fd.get("name"),
       email: fd.get("email"),
       phone: fd.get("phone"),
-      goal: fd.get("goal"),
       sessionSlot: fd.get("sessionSlot"),
       company: fd.get("company") ?? "",
       whatsappOptIn: fd.get("whatsappOptIn") === "on",
