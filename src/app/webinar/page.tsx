@@ -52,7 +52,10 @@ export default function WebinarPage() {
         >
           <div className="lg:col-span-6 space-y-8">
             <div>
-              <Eyebrow tone="gold" className="mb-4">
+              <Eyebrow
+                tone="gold"
+                className="mb-4 !text-[28px] !font-bold !tracking-[0.06em] leading-tight"
+              >
                 {hero.eyebrow}
               </Eyebrow>
               <h1 className="text-display text-white mb-5">{hero.heading}</h1>

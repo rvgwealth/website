@@ -1,20 +1,37 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronDown, Lock } from "lucide-react";
 import { Button } from "./Button";
 import { Eyebrow } from "./Eyebrow";
+import { generateSessionSlots, type SessionSlot } from "@/lib/webinar";
 
 type Status = "idle" | "sending" | "error";
 
 const inputClasses =
   "w-full bg-mist border border-hairline rounded-lg px-4 py-2.5 text-ink placeholder:text-slate/60 focus:border-evergreen focus:outline-none";
 
+// Extra right padding keeps long option text from running under the chevron.
+const selectClasses = `${inputClasses} pr-11 appearance-none cursor-pointer truncate`;
+
+// Bold, high-contrast field labels.
+const labelClasses = "!font-bold !text-ink";
+
+// The dates are derived on the client so the list always reflects the
+// visitor's "today" instead of freezing at build time on this static page.
+// useSyncExternalStore keeps the server snapshot empty without a setState
+// cascade; both snapshots must be referentially stable, hence the caches.
+const NO_SLOTS: SessionSlot[] = [];
+let cachedSlots: SessionSlot[] | null = null;
+const neverChanges = () => () => {};
+const clientSlots = () => (cachedSlots ??= generateSessionSlots(12));
+
 export function WebinarForm() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const slots = useSyncExternalStore(neverChanges, clientSlots, () => NO_SLOTS);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,6 +42,7 @@ export function WebinarForm() {
       email: fd.get("email"),
       phone: fd.get("phone"),
       goal: fd.get("goal"),
+      sessionSlot: fd.get("sessionSlot"),
       company: fd.get("company") ?? "",
       whatsappOptIn: fd.get("whatsappOptIn") === "on",
     };
@@ -68,7 +86,7 @@ export function WebinarForm() {
       />
 
       <div className="space-y-2">
-        <Eyebrow tone="muted">Full Name</Eyebrow>
+        <Eyebrow tone="muted" className={labelClasses}>Full Name</Eyebrow>
         <input
           className={inputClasses}
           placeholder="Your name"
@@ -82,7 +100,7 @@ export function WebinarForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <Eyebrow tone="muted">Email Address</Eyebrow>
+          <Eyebrow tone="muted" className={labelClasses}>Email Address</Eyebrow>
           <input
             className={inputClasses}
             placeholder="you@example.com"
@@ -93,7 +111,7 @@ export function WebinarForm() {
           />
         </div>
         <div className="space-y-2">
-          <Eyebrow tone="muted">WhatsApp Number</Eyebrow>
+          <Eyebrow tone="muted" className={labelClasses}>WhatsApp Number</Eyebrow>
           <input
             className={inputClasses}
             placeholder="+91 00000 00000"
@@ -107,18 +125,24 @@ export function WebinarForm() {
       </div>
 
       <div className="space-y-2">
-        <Eyebrow tone="muted">What Brings You Here?</Eyebrow>
+        <Eyebrow tone="muted" className={labelClasses}>
+          Choose Your Session
+        </Eyebrow>
         <div className="relative">
           <select
-            className={`${inputClasses} appearance-none cursor-pointer`}
-            name="goal"
-            defaultValue="structure"
+            className={selectClasses}
+            name="sessionSlot"
+            required
+            defaultValue=""
           >
-            <option value="structure">Structure my overall financial plan</option>
-            <option value="saving">Build a saving &amp; investing habit</option>
-            <option value="education">Plan for my child&apos;s education</option>
-            <option value="retirement">Prepare for retirement</option>
-            <option value="debt">Get out of debt</option>
+            <option value="" disabled>
+              {slots.length ? "Select a date" : "Loading dates…"}
+            </option>
+            {slots.map((slot) => (
+              <option key={slot.value} value={slot.value}>
+                {slot.label}
+              </option>
+            ))}
           </select>
           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none w-5 h-5 text-slate" />
         </div>
@@ -147,10 +171,6 @@ export function WebinarForm() {
         <ArrowRight className="w-4 h-4" />
       </Button>
 
-      <p className="flex items-center justify-center gap-2 text-xs text-slate/70">
-        <Lock className="w-3.5 h-3.5" />
-        We never share your details. No spam, ever.
-      </p>
     </form>
   );
 }

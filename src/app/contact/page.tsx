@@ -42,7 +42,7 @@ export default function ContactPage() {
                 </span>
                 <div>
                   <p className="text-eyebrow text-white/50">Press &amp; Media</p>
-                  <p className="text-body text-white">press@rvgwealth.com</p>
+                  <p className="text-body text-white">enquiries@rvgwealth.com</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">

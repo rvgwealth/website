@@ -17,7 +17,7 @@ import {
 // EDIT ME: replace with the real WhatsApp group invite link before launch.
 // ---------------------------------------------------------------------------
 export const whatsappGroupUrl =
-  "https://chat.whatsapp.com/REPLACE_WITH_GROUP_INVITE_CODE";
+  "https://chat.whatsapp.com/IEDg7qrkQ2F30OK4GUgigv?s=cl&p=i&mlu=4&ilr=4";
 
 // EDIT ME: schedule details shown across the registration + confirmation pages.
 export const session = {
@@ -25,9 +25,83 @@ export const session = {
   duration: "90 minutes",
   format: "Live online session",
   cost: "100% free",
-  schedule: "Every Saturday · 11:00 AM IST",
+  schedule: "Saturdays & Sundays · 11:00 AM IST",
   seats: "Limited seats available",
 };
+
+// ---------------------------------------------------------------------------
+// Session slots — every Saturday and Sunday at 11:00 AM IST, rolling forward
+// so the dropdown never goes stale. Values are plain ISO dates (YYYY-MM-DD)
+// so the server can re-derive and validate the label independently.
+// ---------------------------------------------------------------------------
+export const SLOT_TIME = "11:00 AM IST";
+
+export type SessionSlot = { value: string; label: string };
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** Returns the display label for an ISO date, or null if it isn't a weekend. */
+export function formatSlotLabel(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [y, m, d] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
+
+  const dow = date.getUTCDay();
+  if (dow !== 0 && dow !== 6) return null;
+
+  const weekday = dow === 6 ? "Saturday" : "Sunday";
+  return `${weekday}, ${d} ${MONTHS[m - 1]} ${y} · ${SLOT_TIME}`;
+}
+
+/**
+ * Compact variant for the registration dropdown — the full label overflows a
+ * closed <select> on a phone. Emails and Supabase keep the long form.
+ */
+export function formatSlotShortLabel(value: string): string | null {
+  if (!formatSlotLabel(value)) return null;
+  const [y, m, d] = value.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const weekday = dow === 6 ? "Sat" : "Sun";
+  return `${weekday}, ${d} ${MONTHS[m - 1].slice(0, 3)} · 11 AM IST`;
+}
+
+/** Next `count` weekend slots, starting tomorrow. */
+export function generateSessionSlots(count = 8, from = new Date()): SessionSlot[] {
+  const slots: SessionSlot[] = [];
+  const cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  cursor.setDate(cursor.getDate() + 1); // never offer a session starting today
+
+  while (slots.length < count) {
+    const dow = cursor.getDay();
+    if (dow === 6 || dow === 0) {
+      const value = [
+        cursor.getFullYear(),
+        String(cursor.getMonth() + 1).padStart(2, "0"),
+        String(cursor.getDate()).padStart(2, "0"),
+      ].join("-");
+      const label = formatSlotShortLabel(value);
+      if (label) slots.push({ value, label });
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return slots;
+}
 
 export const hero = {
   eyebrow: "Free Financial Planning Webinar",

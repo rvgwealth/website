@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { session, whatsappGroupUrl } from "@/lib/webinar";
+import { formatSlotLabel, session, whatsappGroupUrl } from "@/lib/webinar";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(200),
   phone: z.string().trim().min(7).max(20),
   goal: z.enum(["structure", "saving", "education", "retirement", "debt"]),
+  // ISO date of the chosen weekend slot; the label is re-derived server-side.
+  sessionSlot: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   // Meta requires documented opt-in before any WhatsApp template message.
   whatsappOptIn: z.boolean().default(false),
   // Honeypot — humans never see this field; bots fill it.
@@ -40,7 +42,7 @@ function rateLimited(ip: string) {
   return entry.count > MAX_PER_WINDOW;
 }
 
-function registrantEmail(name: string) {
+function registrantEmail(name: string, slotLabel: string) {
   const firstName = name.split(" ")[0];
   return {
     subject: `You're registered — ${session.name}`,
@@ -54,7 +56,7 @@ function registrantEmail(name: string) {
       whatsappGroupUrl,
       ``,
       `SESSION DETAILS`,
-      `When: ${session.schedule}`,
+      `When: ${slotLabel}`,
       `Duration: ${session.duration}`,
       `Where: ${session.format} — link posted in the WhatsApp group`,
       ``,
@@ -97,11 +99,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, email, phone, goal, whatsappOptIn, company } = parsed.data;
+  const { name, email, phone, goal, sessionSlot, whatsappOptIn, company } =
+    parsed.data;
 
   // Honeypot tripped — pretend success so bots don't adapt.
   if (company) {
     return NextResponse.json({ ok: true });
+  }
+
+  // Re-derive the label rather than trusting the client's display text.
+  const slotLabel = formatSlotLabel(sessionSlot);
+  if (!slotLabel) {
+    return NextResponse.json(
+      { ok: false, error: "Please pick a valid session date." },
+      { status: 400 }
+    );
   }
 
   // 1. Persist to Supabase (source of truth for the lead list).
@@ -113,7 +125,7 @@ export async function POST(request: Request) {
       email,
       phone,
       goal,
-      session_label: session.schedule,
+      session_label: slotLabel,
       source: "website",
       whatsapp_opt_in: whatsappOptIn,
       whatsapp_opt_in_at: whatsappOptIn ? new Date().toISOString() : null,
@@ -133,7 +145,7 @@ export async function POST(request: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   const from = process.env.CONTACT_FROM_EMAIL ?? "enquiries@rvgwealth.com";
   const to = process.env.CONTACT_TO_EMAIL ?? "rvgwealth@gmail.com";
-  const registrant = registrantEmail(name);
+  const registrant = registrantEmail(name, slotLabel);
 
   const results = await Promise.allSettled([
     resend.emails.send({
@@ -148,7 +160,7 @@ export async function POST(request: Request) {
         `Email: ${email}`,
         `WhatsApp: ${phone}`,
         `Goal: ${goalLabels[goal]}`,
-        `Session: ${session.schedule}`,
+        `Session: ${slotLabel}`,
         `WhatsApp opt-in: ${whatsappOptIn ? "YES" : "no"}`,
         ``,
         stored ? `Saved to Supabase.` : `NOT saved to Supabase — check config.`,
