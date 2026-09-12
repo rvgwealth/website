@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "/logo-mark.png",
   },
+  // Proves domain ownership to Meta — gates Aggregated Event Measurement, so
+  // removing it silently degrades iOS conversion reporting. Leave it in place.
+  verification: {
+    other: {
+      "facebook-domain-verification": "zi80fpp8njbleqnwz3az7d00bltols",
+    },
+  },
 };
 
 export default function RootLayout({
