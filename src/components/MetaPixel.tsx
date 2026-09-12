@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 // Public by design — the pixel id is visible in the page source either way.
-const PIXEL_ID = "1070082342098206";
+const PIXEL_ID = "792235003947214";
 
 declare global {
   interface Window {
