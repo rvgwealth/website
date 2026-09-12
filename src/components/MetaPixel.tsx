@@ -54,3 +54,33 @@ fbq('track', 'PageView');`}
     </>
   );
 }
+
+type LeadDetails = { name: string; email: string; phone: string };
+
+/**
+ * Fires the Lead conversion for a completed webinar registration.
+ *
+ * Automatic Advanced Matching scrapes form fields on a native form submit,
+ * which never happens here — the form posts with fetch and then client-side
+ * navigates, so there is nothing for Meta to observe. Re-running init with the
+ * customer data is the documented manual equivalent; fbq normalizes and
+ * SHA-256 hashes these values in the browser before anything is sent.
+ */
+export function trackLead({ name, email, phone }: LeadDetails) {
+  if (typeof window === "undefined" || !window.fbq) return;
+
+  const [firstName, ...rest] = name.trim().split(/\s+/);
+  const lastName = rest.join(" ");
+
+  window.fbq("init", PIXEL_ID, {
+    em: email.trim().toLowerCase(),
+    ph: phone.replace(/\D/g, ""),
+    fn: firstName?.toLowerCase(),
+    ...(lastName ? { ln: lastName.toLowerCase() } : {}),
+  });
+
+  window.fbq("track", "Lead", {
+    content_name: "Free Financial Planning Webinar",
+    content_category: "webinar_registration",
+  });
+}

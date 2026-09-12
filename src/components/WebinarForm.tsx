@@ -6,6 +6,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
 import { Button } from "./Button";
 import { Eyebrow } from "./Eyebrow";
 import { generateSessionSlots, type SessionSlot } from "@/lib/webinar";
+import { trackLead } from "./MetaPixel";
 
 type Status = "idle" | "sending" | "error";
 
@@ -58,6 +59,12 @@ export function WebinarForm() {
       if (!res.ok || !json.ok) {
         throw new Error(json.error ?? "Something went wrong.");
       }
+      // Meta conversion — only on a confirmed registration, never on submit.
+      trackLead({
+        name: String(data.name ?? ""),
+        email: String(data.email ?? ""),
+        phone: String(data.phone ?? ""),
+      });
       router.push("/webinar/confirmed");
     } catch (err) {
       setStatus("error");
